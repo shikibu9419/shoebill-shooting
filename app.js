@@ -38,25 +38,55 @@ let offSetRad = 0;
 
 const createBullet = () => {
   const bullet = new THREE.Mesh(
-    new THREE.CylinderGeometry(1, 1, 5, 50),
+    new THREE.SphereGeometry(1, 50, 50),
     new THREE.MeshPhongMaterial({ color: 0xFFF100 })
   );
   const direction = new THREE.Vector3;
   camera.getWorldDirection(direction);
-  bullet.position.y = 100;
-  bullet.rotation.x = Math.PI / 2;
-  bullet.position.addScaledVector(direction, 100);
+  // bullet.position.y = 100;
+  // bullet.position.addScaledVector(direction, 100);
+  bullet.position.set(camera.position.x, camera.position.y, camera.position.z);
+  bullet.position.addScaledVector(direction, 50);
+
+  bullet.rayCaster = new THREE.Raycaster(bullet.position, direction);
 
   bullets.push(bullet);
   scene.add(bullet);
 }
 
-const bulletMovement = (bullet, delta) => function() {
-  bullet.position.y = 0;
+const deleteShoebillFromDescendant = (obj) => {
+  if (obj.name === 'OSG_Scene') {
+    obj.clear();
+    const index = shoebills.findIndex(s => s.uuid === obj.uuid)
+    if (index >= 0) {
+      shoebills[index].clear();
+      shoebills.splice(index, 1);
+    }
+  } else {
+    deleteShoebillFromDescendant(obj.parent);
+  }
+}
+
+const removeBullet = (bullet, index) => {
+  scene.remove(bullet);
+  bullet.geometry.dispose();
+  bullet.material.dispose();
+  bullets.splice(index, 1);
+}
+
+const bulletMovement = (bullet, bIndex, delta) => function() {
+  bullet.position.y -= 100;
   const now = new THREE.Spherical().setFromVector3(bullet.position);
   now.radius += delta * 100;
   bullet.position.setFromSpherical(now);
-  bullet.position.y = 100;
+  bullet.position.y += 100;
+  bullet.rayCaster.ray.origin.set(bullet.position.x, bullet.position.y, bullet.position.z);
+
+  const intersected = bullet.rayCaster.intersectObjects(shoebills, true);
+  if (intersected.length && intersected[0].distance < 50) {
+    deleteShoebillFromDescendant(intersected[0].object);
+    removeBullet(bullet, bIndex)
+  }
 }
 
 const updateLight = () => {
@@ -277,11 +307,11 @@ const render = () => {
   }
 
   if (bullets.length) {
-    Promise.all(bullets.map((b) => new Promise(bulletMovement(b, delta))))
+    Promise.all(bullets.map((b, index) => new Promise(bulletMovement(b, index, delta))))
   }
 
   if (shoebills.length) {
-    Promise.all(shoebills.map((s) => new Promise(situation.shoebillMovement(s, delta, level))))
+    Promise.all(shoebills.map((s) => new Promise(shooting.shoebillMovement(s, delta, level))))
   }
   if (flyings.length) {
     Promise.all(flyings.map((s, index) => new Promise(() => {
