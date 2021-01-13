@@ -1,4 +1,4 @@
-export const RADIUS = 500;
+export const RADIUS = 300;
 export const SHOEBILL_COUNT = 6;
 
 export const getRandomInt = (max) => {

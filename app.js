@@ -43,8 +43,6 @@ const createBullet = () => {
   );
   const direction = new THREE.Vector3;
   camera.getWorldDirection(direction);
-  // bullet.position.y = 100;
-  // bullet.position.addScaledVector(direction, 100);
   bullet.position.set(camera.position.x, camera.position.y, camera.position.z);
   bullet.position.addScaledVector(direction, 50);
 
@@ -77,7 +75,7 @@ const removeBullet = (bullet, index) => {
 const bulletMovement = (bullet, bIndex, delta) => function() {
   bullet.position.y -= 100;
   const now = new THREE.Spherical().setFromVector3(bullet.position);
-  now.radius += delta * 100;
+  now.radius += delta * 500;
   bullet.position.setFromSpherical(now);
   bullet.position.y += 100;
   bullet.rayCaster.ray.origin.set(bullet.position.x, bullet.position.y, bullet.position.z);
@@ -206,7 +204,7 @@ const init = () => {
         action.crossFadeTo(nextAction, 1);
         nextAction.play();
 
-        start();
+        addShoebill();
       });
 
       mixers.push(mixer);
@@ -217,30 +215,6 @@ const init = () => {
   );
 }
 
-const start = () => Promise.all([...Array(SHOEBILL_COUNT - 1).keys()].map(i =>
-  new Promise(() => {
-    const copy = cloneGltf(gltf);
-    copy.scale.set(baseScale, baseScale, baseScale);
-
-    situation.shoebillPosition(copy, i + 1);
-    copy.rotation.y += offSetRad
-
-    copy.traverse((obj) => {
-      if (obj.isMesh) setupShobillGLTF(obj);
-    });
-
-    const mixer = new THREE.AnimationMixer(copy);
-    const action = mixer.clipAction(animations.Shoebill_walk).setLoop(THREE.LoopRepeat);
-    action.play();
-
-    mixers.push(mixer);
-    mixer.update(0.0001);
-
-    shoebills.push(copy);
-    scene.add(copy);
-  })
-));
-
 const addShoebill = () => {
   if (!gltf) {
     return;
@@ -250,29 +224,21 @@ const addShoebill = () => {
   const scale = getRandomInt(20) + 80;
   copy.scale.set(scale, scale, scale);
 
-  let radius = getRandomInt(RADIUS * 4) + RADIUS;
+  let radius = getRandomInt(RADIUS * 2) + RADIUS;
   const theta = 2 * Math.PI * (Math.random());
 
   copy.rotation.y = theta + Math.PI;
-  copy.position.setFromCylindricalCoords(1000, theta, 200);
-
-  copy.destination = { radius, theta };
-
+  copy.position.setFromCylindricalCoords(radius, theta, 0);
   copy.traverse((obj) => {
     if (obj.isMesh) setupShobillGLTF(obj);
   });
 
   const mixer = new THREE.AnimationMixer(copy);
-  const animation = animations.Shoebill_fly;
-  const flyEnd = animations.Shoebill_fly_end;
-  const idle = animations.Shoebill_idle;
-  const action = mixer.clipAction(animation).setLoop(THREE.LoopRepeat);
-  mixer.clipAction(flyEnd).setLoop(THREE.LoopOnce);
-  mixer.clipAction(idle).setLoop(THREE.LoopRepeat);
+  const action = mixer.clipAction(animations.Shoebill_walk).setLoop(THREE.LoopRepeat);
   action.play();
 
   mixers.push(mixer);
-  flyings.push(copy);
+  shoebills.push(copy);
   scene.add(copy);
 }
 
@@ -281,7 +247,7 @@ const render = () => {
   totalTime += delta;
   const fps = !delta ? 100 : 1 / delta;
 
-  if (totalTime > 10 * eventsCount) {
+  if (totalTime > 2 * eventsCount) {
     if (!opening && fps > 40) addShoebill();
 
     eventsCount++;
@@ -312,38 +278,6 @@ const render = () => {
 
   if (shoebills.length) {
     Promise.all(shoebills.map((s) => new Promise(shooting.shoebillMovement(s, delta, level))))
-  }
-  if (flyings.length) {
-    Promise.all(flyings.map((s, index) => new Promise(() => {
-      const r = Math.sqrt(Math.pow(s.position.x, 2) + Math.pow(s.position.z, 2));
-
-      if (r - s.destination.radius > 50) {
-        s.position.setFromCylindricalCoords(r - delta * 50, s.destination.theta, 200);
-      } else {
-        const mixer = mixers.find(m => m._root.uuid === s.uuid);
-        const newAction = mixer.existingAction(animations.Shoebill_fly_end);
-        mixer.existingAction(animations.Shoebill_fly).crossFadeTo(newAction, 1);
-        newAction.play();
-        flyings.splice(index, 1);
-        landings.push(s);
-      }
-    })))
-  }
-  if (landings.length) {
-    Promise.all(landings.map((s, index) => new Promise(() => {
-      const newY = s.position.y - delta * 50;
-      if (newY >= 0) {
-        s.position.y = newY;
-      } else {
-        s.position.y = 0;
-        const mixer = mixers.find(m => m._root.uuid === s.uuid);
-        const oldAction = mixer.existingAction(animations.Shoebill_fly_end);
-        const newAction = mixer.existingAction(animations.Shoebill_idle);
-        oldAction.crossFadeTo(newAction, 3);
-        newAction.play();
-        landings.splice(index, 1);
-      }
-    })))
   }
 
   requestAnimationFrame(render);
