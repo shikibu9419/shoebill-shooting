@@ -9,9 +9,9 @@ import { VRButton } from './threejs/VRButton.js';
 import { cloneGltf } from './cloneGLTF.js';
 import { VRDesktopControls } from './VRDesktopControls.js';
 import { getRandomInt, SHOEBILL_COUNT, RADIUS } from './utils.js';
-import * as kagome from './kagome.js'
+import * as shooting from './shooting.js'
 
-let situation = kagome;
+let situation = shooting;
 const GLTF_PATH = 'shoebill';
 
 const bgm = document.getElementById('bgm');
@@ -19,9 +19,8 @@ bgm.loop = true;
 bgm.volume = 0;
 
 let initialized = false;
-let idling = true;
-let starting = true;
-let firstPhi = 0;
+let opening = true;
+let level = 50;
 
 const mixers = [];
 const controls = [];
@@ -146,9 +145,9 @@ const init = () => {
       action.play();
 
       mixer.addEventListener('loop', (_) => {
-        if (!idling) return;
+        if (!opening) return;
 
-        idling = false;
+        opening = false;
 
         action.crossFadeTo(nextAction, 1);
         nextAction.play();
@@ -193,8 +192,6 @@ const addShoebill = () => {
     return;
   }
 
-  const flyAway = !getRandomInt(10);
-
   const copy = cloneGltf(gltf);
   const scale = getRandomInt(20) + 80;
   copy.scale.set(scale, scale, scale);
@@ -205,7 +202,6 @@ const addShoebill = () => {
   copy.rotation.y = theta + Math.PI;
   copy.position.setFromCylindricalCoords(1000, theta, 200);
 
-  copy.flyAway = flyAway;
   copy.destination = { radius, theta };
 
   copy.traverse((obj) => {
@@ -232,7 +228,7 @@ const render = () => {
   const fps = !delta ? 100 : 1 / delta;
 
   if (totalTime > 10 * eventsCount) {
-    if (!starting && fps > 40) addShoebill();
+    if (!opening && fps > 40) addShoebill();
 
     eventsCount++;
   }
@@ -241,20 +237,7 @@ const render = () => {
     Promise.all(mixers.map(m => m.update(delta)));
   }
 
-  if (starting) {
-    if (!idling) {
-      const s = shoebills[0];
-      const rad = delta * Math.PI / 10;
-      firstPhi += rad;
-      if (firstPhi > Math.PI / 2 - offSetRad) {
-        s.rotation.y = Math.PI / 2 + offSetRad;
-        starting = false;
-        bgm.volume = 1.0;
-      } else {
-        s.rotation.y -= rad;
-      }
-    }
-
+  if (opening) {
     requestAnimationFrame(render);
     manager.render(scene, camera);
     return;
@@ -270,20 +253,11 @@ const render = () => {
   }
 
   if (shoebills.length) {
-    Promise.all(shoebills.map((s) => new Promise(situation.shoebillMovement(s, delta))))
+    Promise.all(shoebills.map((s) => new Promise(situation.shoebillMovement(s, delta, level))))
   }
   if (flyings.length) {
     Promise.all(flyings.map((s, index) => new Promise(() => {
       const r = Math.sqrt(Math.pow(s.position.x, 2) + Math.pow(s.position.z, 2));
-
-      if (s.flyAway) {
-        if (r > 1100) {
-          s.clear();
-          flyings.splice(index, 1);
-        }
-        s.position.add(new THREE.Vector3(-50 * delta * Math.sin(s.destination.theta), 0, -50 * delta * Math.cos(s.destination.theta)))
-        return;
-      }
 
       if (r - s.destination.radius > 50) {
         s.position.setFromCylindricalCoords(r - delta * 50, s.destination.theta, 200);
@@ -361,7 +335,7 @@ const onHandleClick = () => {
     count++;
     if (count < 10) {
       console.log(`${count}...`)
-    } else if (starting) {
+    } else if (opening) {
       offSetRad = Math.PI / 2;
       console.log('EXTRA MODE START!!')
     }
