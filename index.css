@@ -1,0 +1,49 @@
+html {
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    border: 0;
+    padding: 0;
+}
+body {
+    width : 100vw;
+    height : 100vh;
+    margin: 0;
+    border: 0;
+    padding: 0;
+    overflow: hidden;
+}
+.canvas-wrapper {
+    width : 100vw;
+    height : 100vh;
+    margin: 0;
+    padding: 0;
+}
+
+.screen {
+    top: 0;
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    background-color: rgba(0,0,0,0.5);
+    display: none;
+}
+.screen.active {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+.screen-text {
+    font-size: 20px;
+    font-weight: bold;
+    color: white;
+}
+.screen-loading {
+    color: white;
+    font-weight: bold;
+    display: none;
+}
+.screen-loading.active {
+    display: inline-block;
+}
