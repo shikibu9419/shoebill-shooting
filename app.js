@@ -31,6 +31,7 @@ let clock, renderer, manager, scene, camera, gltf, light;
 let totalTime = 0;
 let eventsCount = 1;
 let baseScale = 100;
+let score = 0;
 
 export const shoebillPosition = (model, index) => {
   const phi = 2 * Math.PI / SHOEBILL_COUNT * index;
@@ -51,6 +52,9 @@ export const shoebillMovement = (model, delta, level) => function() {
 }
 
 const createBullet = () => {
+  if (opening) {
+    return;
+  }
   const bullet = new THREE.Mesh(
     new THREE.SphereGeometry(1, 50, 50),
     new THREE.MeshPhongMaterial({ color: 0xFFF100 })
@@ -73,6 +77,8 @@ const deleteShoebillFromDescendant = (obj) => {
     if (index >= 0) {
       shoebills[index].clear();
       shoebills.splice(index, 1);
+      score += 50;
+      document.getElementById('score').textContent = score;
     }
   } else {
     deleteShoebillFromDescendant(obj.parent);
@@ -182,14 +188,14 @@ const init = () => {
   if (initialized) return;
 
   initialized = true;
-  // document.getElementById('screen-loading').classList.add('active');
+  document.getElementById('screen-loading').classList.add('active');
 
   // Load GLTF File
   const loader = new THREE.GLTFLoader();
   loader.load(
     `${GLTF_PATH}/scene.gltf`,
     (origin) => {
-      // document.getElementById('screen').classList.remove('active');
+      document.getElementById('screen').classList.remove('active');
 
       gltf = origin;
 
@@ -261,7 +267,7 @@ const render = () => {
   totalTime += delta;
   const fps = !delta ? 100 : 1 / delta;
 
-  if (!gameOver && totalTime > 3 * eventsCount) {
+  if (!gameOver && totalTime > 2 * eventsCount) {
     if (!opening && fps > 40) addShoebill();
 
     eventsCount++;
@@ -351,8 +357,7 @@ const onHandleClick = () => {
 window.addEventListener('DOMContentLoaded', main);
 window.addEventListener('resize', onResize);
 window.addEventListener('deviceorientation', updateOrientationControls, true);
-// document.getElementById('screen').addEventListener('click', init);
-// document.getElementById('screen').onclick = function () { bgm.play() }
+document.getElementById('screen').addEventListener('click', init);
+document.getElementById('screen').onclick = function () { bgm.play() }
 document.getElementById('button').onclick = createBullet;
 document.getElementById('canvas-wrapper').addEventListener('click', onHandleClick());
-init();
