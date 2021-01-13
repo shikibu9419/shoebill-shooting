@@ -9,9 +9,7 @@ import { VRButton } from './threejs/VRButton.js';
 import { cloneGltf } from './cloneGLTF.js';
 import { VRDesktopControls } from './VRDesktopControls.js';
 import { getRandomInt, SHOEBILL_COUNT, RADIUS } from './utils.js';
-import * as shooting from './shooting.js'
 
-let situation = shooting;
 const GLTF_PATH = 'shoebill';
 
 const bgm = document.getElementById('bgm');
@@ -21,20 +19,36 @@ bgm.volume = 0;
 let initialized = false;
 let opening = true;
 let level = 50;
+let gameOver = false;
 
 const mixers = [];
 const controls = [];
 let animations = {};
 let textures = [];
 const shoebills = [];
-const flyings = [];
-const landings = [];
 const bullets = [];
 let clock, renderer, manager, scene, camera, gltf, light;
 let totalTime = 0;
-let eventsCount = 0;
+let eventsCount = 1;
 let baseScale = 100;
-let offSetRad = 0;
+
+export const shoebillPosition = (model, index) => {
+  const phi = 2 * Math.PI / SHOEBILL_COUNT * index;
+  model.position.setFromCylindricalCoords(RADIUS, phi, 0);
+  model.rotation.y = phi + Math.PI / 2;
+}
+
+export const shoebillMovement = (model, delta, level) => function() {
+  const now = new THREE.Cylindrical().setFromVector3(model.position);
+  now.radius -= delta * level;
+
+  if (now.radius < 50) {
+    gameOver = true;
+    document.getElementById('gameover-screen').classList.add('active');
+  }
+
+  model.position.setFromCylindrical(now);
+}
 
 const createBullet = () => {
   const bullet = new THREE.Mesh(
@@ -183,7 +197,7 @@ const init = () => {
 
       const copy = cloneGltf(gltf);
       copy.scale.set(baseScale, baseScale, baseScale);
-      situation.shoebillPosition(copy, 0);
+      shoebillPosition(copy, 0);
 
       copy.rotation.y += Math.PI / 2;
 
@@ -247,7 +261,7 @@ const render = () => {
   totalTime += delta;
   const fps = !delta ? 100 : 1 / delta;
 
-  if (totalTime > 2 * eventsCount) {
+  if (!gameOver && totalTime > 3 * eventsCount) {
     if (!opening && fps > 40) addShoebill();
 
     eventsCount++;
@@ -272,12 +286,12 @@ const render = () => {
     )).then(() => updateLight());
   }
 
-  if (bullets.length) {
+  if (!gameOver && bullets.length) {
     Promise.all(bullets.map((b, index) => new Promise(bulletMovement(b, index, delta))))
   }
 
-  if (shoebills.length) {
-    Promise.all(shoebills.map((s) => new Promise(shooting.shoebillMovement(s, delta, level))))
+  if (!gameOver && shoebills.length) {
+    Promise.all(shoebills.map((s) => new Promise(shoebillMovement(s, delta, level))))
   }
 
   requestAnimationFrame(render);
