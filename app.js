@@ -29,11 +29,35 @@ let textures = [];
 const shoebills = [];
 const flyings = [];
 const landings = [];
+const bullets = [];
 let clock, renderer, manager, scene, camera, gltf, light;
 let totalTime = 0;
 let eventsCount = 0;
 let baseScale = 100;
 let offSetRad = 0;
+
+const createBullet = () => {
+  const bullet = new THREE.Mesh(
+    new THREE.CylinderGeometry(1, 1, 5, 50),
+    new THREE.MeshPhongMaterial({ color: 0xFFF100 })
+  );
+  const direction = new THREE.Vector3;
+  camera.getWorldDirection(direction);
+  bullet.position.y = 100;
+  bullet.rotation.x = Math.PI / 2;
+  bullet.position.addScaledVector(direction, 100);
+
+  bullets.push(bullet);
+  scene.add(bullet);
+}
+
+const bulletMovement = (bullet, delta) => function() {
+  bullet.position.y = 0;
+  const now = new THREE.Spherical().setFromVector3(bullet.position);
+  now.radius += delta * 100;
+  bullet.position.setFromSpherical(now);
+  bullet.position.y = 100;
+}
 
 const updateLight = () => {
   if (!light) return;
@@ -116,14 +140,14 @@ const init = () => {
   if (initialized) return;
 
   initialized = true;
-  document.getElementById('screen-loading').classList.add('active');
+  // document.getElementById('screen-loading').classList.add('active');
 
   // Load GLTF File
   const loader = new THREE.GLTFLoader();
   loader.load(
     `${GLTF_PATH}/scene.gltf`,
     (origin) => {
-      document.getElementById('screen').classList.remove('active');
+      // document.getElementById('screen').classList.remove('active');
 
       gltf = origin;
 
@@ -252,6 +276,10 @@ const render = () => {
     )).then(() => updateLight());
   }
 
+  if (bullets.length) {
+    Promise.all(bullets.map((b) => new Promise(bulletMovement(b, delta))))
+  }
+
   if (shoebills.length) {
     Promise.all(shoebills.map((s) => new Promise(situation.shoebillMovement(s, delta, level))))
   }
@@ -345,6 +373,8 @@ const onHandleClick = () => {
 window.addEventListener('DOMContentLoaded', main);
 window.addEventListener('resize', onResize);
 window.addEventListener('deviceorientation', updateOrientationControls, true);
-document.getElementById('screen').addEventListener('click', init);
-document.getElementById('screen').onclick = function () { bgm.play() }
+// document.getElementById('screen').addEventListener('click', init);
+// document.getElementById('screen').onclick = function () { bgm.play() }
+document.getElementById('button').onclick = createBullet;
 document.getElementById('canvas-wrapper').addEventListener('click', onHandleClick());
+init();

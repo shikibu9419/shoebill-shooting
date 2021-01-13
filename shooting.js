@@ -8,5 +8,6 @@ export const shoebillPosition = (model, index) => {
 
 export const shoebillMovement = (model, delta, level) => function() {
   const now = new THREE.Cylindrical().setFromVector3(model.position);
-  model.position.setFromCylindricalCoords(now.radius - delta * level, now.theta, now.y);
+  now.radius -= delta * level;
+  model.position.setFromCylindrical(now);
 }

@@ -20,6 +20,27 @@ body {
     padding: 0;
 }
 
+.cursor {
+    background: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: auto;
+}
+
+.button {
+    border: solid 2px white;
+    height: 15vmin;
+    width: 15vmin;
+    box-sizing: border-box;
+    border-radius: 50%;
+    position: absolute;
+    right: 10vmin;
+    bottom: 10vmin;
+}
+
 .screen {
     top: 0;
     position: absolute;
