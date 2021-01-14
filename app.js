@@ -107,19 +107,6 @@ const bulletMovement = (bullet, bIndex, delta) => function() {
   }
 }
 
-const updateLight = () => {
-  if (!light) return;
-
-  if (controls.length > 1) {
-    const lightDirection = new THREE.Euler().setFromQuaternion(camera.quaternion)
-    light.position.set(camera.position.x, camera.position.y, camera.position.z)
-    light.setRotationFromEuler(lightDirection)
-  } else {
-    const cameraTargetPos = controls[0].targetPosition;
-    light.position.set(-cameraTargetPos.x * 10, 100 + (100 - cameraTargetPos.y) * 10, -cameraTargetPos.z * 10);
-  }
-}
-
 const main = async () => {
   // setup renderer
   renderer = new THREE.WebGLRenderer({
@@ -169,11 +156,7 @@ const main = async () => {
   }));
 
   // setup light
-  light = new THREE.SpotLight(0xFFFFFF, 3, RADIUS * 5, Math.PI / 5, 10, 0.8);
-  light.target = camera;
-  scene.add(light);
-  scene.add(new THREE.AmbientLight(0xFFFFFF, 0.3));
-  updateLight();
+  scene.add(new THREE.AmbientLight(0xFFFFFF, 3.0));
 
   if (!getRandomInt(10)) {
     offSetRad = Math.PI / 2;
@@ -224,6 +207,7 @@ const init = () => {
         action.crossFadeTo(nextAction, 1);
         nextAction.play();
 
+        bgm.volume = 1.0;
         addShoebill();
       });
 
@@ -289,7 +273,7 @@ const render = () => {
         c.update(delta);
         resolve();
       })
-    )).then(() => updateLight());
+    ));
   }
 
   if (!gameOver && bullets.length) {
@@ -360,4 +344,5 @@ window.addEventListener('deviceorientation', updateOrientationControls, true);
 document.getElementById('screen').addEventListener('click', init);
 document.getElementById('screen').onclick = function () { bgm.play() }
 document.getElementById('button').onclick = createBullet;
+document.getElementById('reload').onclick = function () { location.reload() };
 document.getElementById('canvas-wrapper').addEventListener('click', onHandleClick());
